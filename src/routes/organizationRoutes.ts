@@ -95,6 +95,7 @@ router.post('/', createLimiter, async (req, res) => {
     }
     res.status(201).json({ ...organization, emailSent });
   } catch (error) {
+    console.error('[Organizations] Failed to create organization:', error);
     res.status(duplicateKey(error) ? 409 : 500).json({
       error: duplicateKey(error)
         ? 'That email or invitation name is already registered. Please use a new email or link name.'
@@ -128,7 +129,8 @@ router.get('/:type/:slug/details', ownerOnly, async (req, res) => {
           error: "Only this organization's creator may view this information.",
         });
     res.json(details);
-  } catch {
+  } catch (error) {
+    console.error('[Organizations] Failed to load organization:', error);
     res.status(500).json({ error: 'Unable to load organization' });
   }
 });
@@ -150,7 +152,8 @@ router.get('/:type/:slug/members', ownerOnly, async (req, res) => {
           error: 'Access unavailable. Use the private creator session.',
         });
     res.json({ members });
-  } catch {
+  } catch (error) {
+    console.error('[Organizations] Failed to load members:', error);
     res.status(500).json({ error: 'Unable to load members' });
   }
 });
