@@ -2,21 +2,18 @@ import { existsSync } from 'node:fs';
 import { resolve } from 'node:path';
 import { config as loadDotenv } from 'dotenv';
 
-// Keep the user's private server/.env. Fall back to its local backup if an
-// earlier git pull removed the formerly tracked file; neither is committed.
+// Deployment environment variables take precedence over values in local files.
+// Production must not fall back to development credentials or localhost URLs.
 const serverRoot = resolve(__dirname, '../..');
-const primary = resolve(serverRoot, '.env');
-const backup = resolve(serverRoot, '.env.backup');
+const production = process.env.NODE_ENV === 'production';
+const filename = production ? '.env.prod' : '.env';
+const primary = resolve(serverRoot, filename);
 
 if (existsSync(primary)) {
   const result = loadDotenv({ path: primary });
-  if (result.error) console.error('[VILA config] Failed to read server/.env:', result.error.message);
-} else if (existsSync(backup)) {
-  const result = loadDotenv({ path: backup });
-  if (result.error) console.error('[VILA config] Failed to read server/.env.backup:', result.error.message);
-  else console.warn('[VILA config] server/.env is missing. Using your local .env.backup (not committed). Restore it as server/.env for normal operation.');
+  if (result.error) console.error(`[VILA config] Failed to read ${filename}:`, result.error.message);
 } else {
-  console.warn('[VILA config] No server/.env found. SMTP will not send unless credentials are supplied via environment variables.');
+  console.info(`[VILA config] No ${filename} found. Using deployment environment variables.`);
 }
 
 const required = ['EMAIL_HOST', 'EMAIL_PORT', 'EMAIL_USER', 'EMAIL_PASS'];
@@ -25,7 +22,7 @@ if (missing.length > 0) {
   console.warn('[VILA email] SMTP is NOT READY. Missing: ' + missing.join(', '));
 } else if (/^(myemail|youraddress|replace-with|myemailpassword)/i.test(process.env.EMAIL_USER || '') ||
   /^(myemailpassword|replace-with|your-smtp)/i.test(process.env.EMAIL_PASS || '')) {
-  console.warn('[VILA email] SMTP credentials look like example placeholders. Set actual SMTP credentials in server/.env.');
+  console.warn(`[VILA email] SMTP credentials look like example placeholders. Set actual SMTP credentials in ${filename}.`);
 } else {
-  console.info('[VILA email] SMTP configuration detected for ' + process.env.EMAIL_HOST + ':' + process.env.EMAIL_PORT + '. Run npm run email:test -- you@example.com to check connectivity and authentication.');
+  console.info('[VILA email] SMTP configuration detected for ' + process.env.EMAIL_HOST + ':' + process.env.EMAIL_PORT + '.');
 }

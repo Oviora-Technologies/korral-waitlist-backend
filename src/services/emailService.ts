@@ -11,7 +11,7 @@ function appUrl(path: string) {
 }
 
 /** Email is sent only AFTER registration succeeds. Failures must never invalidate or repeat a saved registration. */
-async function send(message: Message, verifyOnly = false): Promise<boolean> {
+async function send(message: Message): Promise<boolean> {
   const host = process.env.EMAIL_HOST;
   const port = Number(process.env.EMAIL_PORT || 587);
   const user = process.env.EMAIL_USER;
@@ -31,14 +31,6 @@ async function send(message: Message, verifyOnly = false): Promise<boolean> {
       greetingTimeout: 10000,
       socketTimeout: 10000,
     });
-    if (verifyOnly) {
-      try {
-        await transport.verify();
-        return true;
-      } finally {
-        transport.close();
-      }
-    }
     const result = await transport.sendMail({
       from: process.env.EMAIL_FROM || `"VILA" <${user}>`,
       to: message.to,
@@ -100,17 +92,4 @@ export function sendOrganizationCreatedEmail({ name, email, type, organizationNa
     actionText: 'Share your invitation',
     actionUrl: appUrl(invitePath),
   });
-}
-
-/** Local-only CLI helper; never expose this as a public API endpoint. */
-export async function sendTestEmail(recipient: string, verifyOnly = false) {
-  return send({
-    to: recipient,
-    name: 'VILA tester',
-    subject: 'VILA SMTP test — confirmation email',
-    heading: 'Your VILA email is working!',
-    message: 'This test confirms the VILA backend submitted a branded email to your SMTP provider. If you can read this message, email delivery is working.',
-    actionText: 'Visit VILA',
-    actionUrl: appUrl('/'),
-  }, verifyOnly);
 }
