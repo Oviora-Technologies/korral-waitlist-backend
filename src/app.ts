@@ -11,7 +11,21 @@ app.disable('x-powered-by');
 // CRA's local proxy supplies X-Forwarded-For. Only trust known proxy addresses.
 app.set('trust proxy', env.trustedProxies);
 app.use(helmet());
-app.use(cors({ origin: env.clientOrigin }));
+// Accept the deployed waitlist frontend even if CLIENT_ORIGIN is still set to a local URL.
+// Keep the configured origin for other trusted deployments and local development.
+const allowedOrigins = new Set([
+  'https://villa-waitlist-frontend.onrender.com',
+  env.clientOrigin,
+]);
+app.use(cors({
+  origin(origin, callback) {
+    if (!origin || allowedOrigins.has(origin)) {
+      callback(null, true);
+    } else {
+      callback(new Error('Origin not allowed by CORS'));
+    }
+  },
+}));
 app.use(express.json({ limit: '16kb' }));
 app.get('/api/health', (_req, res) => res.json({ ok: true }));
 app.use('/api', waitlistRoutes);
