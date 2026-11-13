@@ -6,7 +6,7 @@ import { connectDatabase } from './config/database';
 async function main() {
   await connectDatabase();
   app.listen(env.port, () =>
-    console.log('VILA API running on port ' + env.port),
+    console.log(`VILA API running on port ${env.port}. Client origin: ${env.clientOrigin}`),
   );
 }
 main().catch((error) => {

@@ -1,3 +1,4 @@
+import { logRequestError } from '../middleware/requestLogging';
 import { Router } from 'express';
 import { rateLimit } from 'express-rate-limit';
 import { z } from 'zod';
@@ -16,6 +17,7 @@ const limiter = rateLimit({
   limit: 8,
   standardHeaders: 'draft-8',
   legacyHeaders: false,
+  message: { error: 'You have tried to sign in several times. Please wait 15 minutes before trying again.' },
 });
 router.post('/login', limiter, async (req, res) => {
   const parsed = z
@@ -29,7 +31,7 @@ router.post('/login', limiter, async (req, res) => {
     })
     .safeParse(req.body);
   if (!parsed.success)
-    return void res.status(401).json({ error: 'Invalid email or password' });
+    return void res.status(401).json({ error: 'The email and password do not match. Please check both and try again.' });
   try {
     const user = await db
       .collection('registrations')
@@ -39,22 +41,23 @@ router.post('/login', limiter, async (req, res) => {
       typeof user.passwordHash !== 'string' ||
       !(await verifyPassword(parsed.data.password, user.passwordHash))
     ) {
-      return void res.status(401).json({ error: 'Invalid email or password' });
+      return void res.status(401).json({ error: 'The email and password do not match. Please check both and try again.' });
     }
     const token = await createSession(user._id);
     res.json({
       token,
       user: { id: user._id.toHexString(), name: user.name, email: user.email },
     });
-  } catch {
-    res.status(500).json({ error: 'Unable to sign in' });
+  } catch (error) {
+    logRequestError(req, res, error, 'authRoutes');
+    res.status(500).json({ error: 'We could not sign you in right now. Please try again in a few minutes.' });
   }
 });
 router.get('/me', ownerOnly, async (_req, res) => {
   const user = await db
     .collection('registrations')
     .findOne({ _id: res.locals.userId }, { projection: { name: 1, email: 1 } });
-  if (!user) return void res.status(401).json({ error: 'Account not found' });
+  if (!user) return void res.status(401).json({ error: 'Please sign in again to continue.' });
   const organizations = await db
     .collection('organizations')
     .find(

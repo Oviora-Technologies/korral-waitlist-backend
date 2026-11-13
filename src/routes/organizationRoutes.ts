@@ -1,3 +1,4 @@
+import { logRequestError } from '../middleware/requestLogging';
 import { Router } from 'express';
 import { ObjectId } from 'mongodb';
 import { db } from '../config/database';
@@ -18,6 +19,7 @@ const createLimiter = rateLimit({
   limit: 5,
   standardHeaders: 'draft-8',
   legacyHeaders: false,
+  message: { error: 'You have made several creation attempts. Please wait 15 minutes before trying again.' },
 });
 const creationSchema = z.object({
   type: z.enum(['community', 'group']),
@@ -91,14 +93,14 @@ router.post('/', createLimiter, async (req, res) => {
         });
       }
     } catch (emailError) {
-      console.error('VILA organization was created, but notification could not be sent:', emailError instanceof Error ? emailError.message : 'Unknown error');
+      logRequestError(req, res, emailError, 'Organization notification failed after creation');
     }
     res.status(201).json({ ...organization, emailSent });
   } catch (error) {
-    console.error('[Organizations] Failed to create organization:', error);
+    logRequestError(req, res, error, 'Failed to create organization');
     res.status(duplicateKey(error) ? 409 : 500).json({
       error: duplicateKey(error)
-        ? 'That email or invitation name is already registered. Please use a new email or link name.'
+        ? 'This email address or invitation link name is already in use. If you already have an account, sign in first. Otherwise, try a different link name.'
         : 'Unable to create the community or group. Please try again.',
     });
   }
@@ -115,7 +117,7 @@ const managerParams = z.object({
 router.get('/:type/:slug/details', ownerOnly, async (req, res) => {
   const p = managerParams.safeParse(req.params);
   if (!p.success)
-    return void res.status(400).json({ error: 'Invalid organization' });
+    return void res.status(400).json({ error: 'This community or group link is not valid. Please open it from your dashboard.' });
   try {
     const details = await getManagedOrganization(
       p.data.type,
@@ -130,15 +132,15 @@ router.get('/:type/:slug/details', ownerOnly, async (req, res) => {
         });
     res.json(details);
   } catch (error) {
-    console.error('[Organizations] Failed to load organization:', error);
-    res.status(500).json({ error: 'Unable to load organization' });
+    logRequestError(req, res, error, 'Failed to load organization');
+    res.status(500).json({ error: 'We could not load this community or group. Please refresh the page in a moment.' });
   }
 });
 
 router.get('/:type/:slug/members', ownerOnly, async (req, res) => {
   const p = managerParams.safeParse(req.params);
   if (!p.success)
-    return void res.status(400).json({ error: 'Invalid organization' });
+    return void res.status(400).json({ error: 'This community or group link is not valid. Please open it from your dashboard.' });
   try {
     const members = await getManagedMembers(
       p.data.type,
@@ -149,12 +151,12 @@ router.get('/:type/:slug/members', ownerOnly, async (req, res) => {
       return void res
         .status(403)
         .json({
-          error: 'Access unavailable. Use the private creator session.',
+          error: 'Sign in with the account that created this community or group to view its members.',
         });
     res.json({ members });
   } catch (error) {
-    console.error('[Organizations] Failed to load members:', error);
-    res.status(500).json({ error: 'Unable to load members' });
+    logRequestError(req, res, error, 'Failed to load members');
+    res.status(500).json({ error: 'We could not load the member list. Please refresh the page in a moment.' });
   }
 });
 

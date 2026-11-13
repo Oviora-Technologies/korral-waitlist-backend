@@ -3,10 +3,9 @@ import { resolve } from 'node:path';
 import { config as loadDotenv } from 'dotenv';
 
 // Deployment environment variables take precedence over values in local files.
-// Production must not fall back to development credentials or localhost URLs.
+// Use the same local file in every mode; NODE_ENV is set independently.
 const serverRoot = resolve(__dirname, '../..');
-const production = process.env.NODE_ENV === 'production';
-const filename = production ? '.env.prod' : '.env';
+const filename = '.env';
 const primary = resolve(serverRoot, filename);
 
 if (existsSync(primary)) {
