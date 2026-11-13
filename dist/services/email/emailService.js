@@ -13,7 +13,7 @@ const node_path_1 = require('node:path');
 const emailTemplate_1 = require('./template/emailTemplate');
 const logoPath = (0, node_path_1.resolve)(
   __dirname,
-  '../../assets/vila-logo.png',
+  '../../assets/korral-logo.png',
 );
 function appUrl(path) {
   const base =
@@ -37,7 +37,7 @@ async function send(message, verifyOnly = false) {
       .filter(Boolean)
       .join(', ');
     console.error(
-      `[VILA email] Not sent to ${message.to}: missing ${missing} in server/.env`,
+      `[korral email] Not sent to ${message.to}: missing ${missing} in server/.env`,
     );
     return false;
   }
@@ -60,16 +60,16 @@ async function send(message, verifyOnly = false) {
       }
     }
     const result = await transport.sendMail({
-      from: process.env.EMAIL_FROM || `"VILA" <${user}>`,
+      from: process.env.EMAIL_FROM || `"korral" <${user}>`,
       to: message.to,
       subject: message.subject,
-      text: `Hi ${message.name},\n\n${message.message}\n\n${message.actionText ? message.actionText + ': ' + message.actionUrl + '\n\n' : ''}Thanks,\nThe VILA Team`,
+      text: `Hi ${message.name},\n\n${message.message}\n\n${message.actionText ? message.actionText + ': ' + message.actionUrl + '\n\n' : ''}Thanks,\nThe korral Team`,
       html: (0, emailTemplate_1.renderEmail)(message),
       attachments: [
         {
-          filename: 'vila-logo.png',
+          filename: 'korral-logo.png',
           path: logoPath,
-          cid: 'vila-logo',
+          cid: 'korral-logo',
           contentDisposition: 'inline',
         },
       ],
@@ -80,17 +80,17 @@ async function send(message, verifyOnly = false) {
     const ok = accepted.includes(message.to.trim().toLowerCase());
     if (ok) {
       console.info(
-        `[VILA email] SMTP accepted ${message.to}. Message ID: ${result.messageId}`,
+        `[korral email] SMTP accepted ${message.to}. Message ID: ${result.messageId}`,
       );
     } else {
       console.error(
-        `[VILA email] SMTP did not accept ${message.to}. Rejected recipients: ${(result.rejected || []).length}`,
+        `[korral email] SMTP did not accept ${message.to}. Rejected recipients: ${(result.rejected || []).length}`,
       );
     }
     return ok;
   } catch (error) {
     const failure = error;
-    console.error('[VILA email] SMTP send failed:', {
+    console.error('[korral email] SMTP send failed:', {
       code: failure.code || 'UNKNOWN',
       responseCode: failure.responseCode,
       command: failure.command,
@@ -99,8 +99,8 @@ async function send(message, verifyOnly = false) {
     if (failure.code === 'EAUTH') {
       console.error(
         host === 'smtp.gmail.com'
-          ? '[VILA email] Gmail rejected the credentials. Enable 2-Step Verification and create an App Password at https://myaccount.google.com/apppasswords for EMAIL_USER. Save it as EMAIL_PASS in server/.env, then restart the server. Do not use your regular Google password.'
-          : '[VILA email] The SMTP provider rejected EMAIL_USER or EMAIL_PASS. Update the credentials and restart the server.',
+          ? '[korral email] Gmail rejected the credentials. Enable 2-Step Verification and create an App Password at https://myaccount.google.com/apppasswords for EMAIL_USER. Save it as EMAIL_PASS in server/.env, then restart the server. Do not use your regular Google password.'
+          : '[korral email] The SMTP provider rejected EMAIL_USER or EMAIL_PASS. Update the credentials and restart the server.',
       );
     }
     return false;
@@ -112,13 +112,13 @@ function sendSignupEmail({ name, email, organizationName, organizationType }) {
     to: email,
     name,
     subject: attached
-      ? `Welcome to ${organizationName} on VILA!`
-      : 'Welcome to the VILA waitlist!',
-    heading: attached ? 'You are on the list!' : 'Welcome to VILA!',
+      ? `Welcome to ${organizationName} on korral!`
+      : 'Welcome to the korral waitlist!',
+    heading: attached ? 'You are on the list!' : 'Welcome to korral!',
     message: attached
-      ? `You have successfully joined the VILA early-access waitlist through ${organizationName}. We will email you when VILA is ready. `
-      : 'You have successfully joined the VILA early-access waitlist. We will keep you posted as we prepare to launch!',
-    // actionText: 'Explore VILA',
+      ? `You have successfully joined the korral early-access waitlist through ${organizationName}. We will email you when korral is ready. `
+      : 'You have successfully joined the korral early-access waitlist. We will keep you posted as we prepare to launch!',
+    // actionText: 'Explore korral',
     // actionUrl: appUrl('/'),
   });
 }
@@ -133,9 +133,9 @@ function sendOrganizationCreatedEmail({
   return send({
     to: email,
     name,
-    subject: `Your VILA ${type} "${organizationName}" is ready!`,
-    heading: 'Your people have a place on VILA!',
-    message: `You have successfully created the ${type} "${organizationName}" on VILA. You are its creator and administrator. Share the invitation link below to welcome people to your ${type}. You can sign in with your email and password to manage registrations.`,
+    subject: `Your korral ${type} "${organizationName}" is ready!`,
+    heading: 'Your people have a place on korral!',
+    message: `You have successfully created the ${type} "${organizationName}" on korral. You are its creator and administrator. Share the invitation link below to welcome people to your ${type}. You can sign in with your email and password to manage registrations.`,
     actionText: 'Share your invitation',
     actionUrl: appUrl(invitePath),
   });
@@ -145,12 +145,12 @@ async function sendTestEmail(recipient, verifyOnly = false) {
   return send(
     {
       to: recipient,
-      name: 'VILA tester',
-      subject: 'VILA SMTP test — confirmation email',
-      heading: 'Your VILA email is working!',
+      name: 'korral tester',
+      subject: 'korral SMTP test — confirmation email',
+      heading: 'Your korral email is working!',
       message:
-        'This test confirms the VILA backend submitted a branded email to your SMTP provider. If you can read this message, email delivery is working.',
-      actionText: 'Visit VILA',
+        'This test confirms the korral backend submitted a branded email to your SMTP provider. If you can read this message, email delivery is working.',
+      actionText: 'Visit korral',
       actionUrl: appUrl('/'),
     },
     verifyOnly,

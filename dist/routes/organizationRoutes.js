@@ -89,7 +89,7 @@ router.post('/', createLimiter, async (req, res) => {
       }
     } catch (emailError) {
       console.error(
-        'VILA organization was created, but notification could not be sent:',
+        'korral organization was created, but notification could not be sent:',
         emailError instanceof Error ? emailError.message : 'Unknown error',
       );
     }

@@ -15,7 +15,10 @@ const limiter = rateLimit({
   limit: 12,
   standardHeaders: 'draft-8',
   legacyHeaders: false,
-  message: { error: 'You have made several signup attempts. Please wait 15 minutes before trying again.' },
+  message: {
+    error:
+      'You have made several signup attempts. Please wait 15 minutes before trying again.',
+  },
 });
 const registrationSchema = z.object({
   name: z.string().trim().min(2).max(100),
@@ -38,12 +41,22 @@ router.get('/organization/:type/:slug', async (req, res) => {
     !['community', 'group'].includes(type) ||
     !/^[a-z0-9-]{2,80}$/.test(slug)
   ) {
-    return void res.status(400).json({ error: 'This invitation link is not valid. Please ask the person who invited you for a new link.' });
+    return void res
+      .status(400)
+      .json({
+        error:
+          'This invitation link is not valid. Please ask the person who invited you for a new link.',
+      });
   }
   try {
     const organization = await findOrganization(type, slug);
     if (!organization)
-      return void res.status(404).json({ error: 'We could not find this invitation. Please ask the person who invited you to check the link.' });
+      return void res
+        .status(404)
+        .json({
+          error:
+            'We could not find this invitation. Please ask the person who invited you to check the link.',
+        });
     res.json({
       name: organization.name,
       type: organization.type,
@@ -51,7 +64,12 @@ router.get('/organization/:type/:slug', async (req, res) => {
     });
   } catch (error) {
     logRequestError(req, res, error, 'waitlistRoutes');
-    res.status(500).json({ error: 'We could not open this invitation right now. Please try again in a few minutes.' });
+    res
+      .status(500)
+      .json({
+        error:
+          'We could not open this invitation right now. Please try again in a few minutes.',
+      });
   }
 });
 
@@ -60,15 +78,28 @@ router.post('/join', limiter, async (req, res) => {
   if (!parsed.success)
     return void res
       .status(400)
-      .json({ error: 'Please check your name and email address, and agree to receive updates before joining.' });
+      .json({
+        error:
+          'Please check your name and email address, and agree to receive updates before joining.',
+      });
   const data = parsed.data;
   if (Boolean(data.organizationType) !== Boolean(data.organizationSlug)) {
-    return void res.status(400).json({ error: 'This invitation is incomplete. Please open the full link shared with you.' });
+    return void res
+      .status(400)
+      .json({
+        error:
+          'This invitation is incomplete. Please open the full link shared with you.',
+      });
   }
   try {
     const created = await registerPerson(data);
     if (!created)
-      return void res.status(404).json({ error: 'We could not find this invitation. Please ask the person who invited you to check the link.' });
+      return void res
+        .status(404)
+        .json({
+          error:
+            'We could not find this invitation. Please ask the person who invited you to check the link.',
+        });
     // Registration is already saved: an email outage must not cause duplicate signups.
     const emailSent = await sendSignupEmail({
       name: data.name,
@@ -76,7 +107,9 @@ router.post('/join', limiter, async (req, res) => {
       organizationName: created.organizationName,
       organizationType: created.organizationType,
     });
-    res.status(201).json({ message: 'You have joined the VILA waitlist!', emailSent });
+    res
+      .status(201)
+      .json({ message: 'You have joined the korral waitlist!', emailSent });
   } catch (error) {
     logRequestError(req, res, error, 'waitlistRoutes');
     res.status(duplicateKey(error) ? 409 : 500).json({

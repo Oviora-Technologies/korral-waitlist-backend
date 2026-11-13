@@ -3,7 +3,7 @@ import { MongoClient } from 'mongodb';
 export const mongoClient = new MongoClient(
   process.env.MONGODB_URI || 'mongodb://127.0.0.1:27017',
 );
-export const db = mongoClient.db(process.env.MONGODB_DB || 'vila_waitlist');
+export const db = mongoClient.db(process.env.MONGODB_DB || 'korral_waitlist');
 
 export async function connectDatabase() {
   await mongoClient.connect();

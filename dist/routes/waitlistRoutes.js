@@ -73,7 +73,7 @@ router.post('/join', limiter, async (req, res) => {
     });
     res
       .status(201)
-      .json({ message: 'You have joined the VILA waitlist!', emailSent });
+      .json({ message: 'You have joined the korral waitlist!', emailSent });
   } catch (error) {
     res.status((0, waitlistService_1.duplicateKey)(error) ? 409 : 500).json({
       error: (0, waitlistService_1.duplicateKey)(error)

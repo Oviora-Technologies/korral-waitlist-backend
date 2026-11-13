@@ -6,7 +6,9 @@ const mongodb_1 = require('mongodb');
 exports.mongoClient = new mongodb_1.MongoClient(
   process.env.MONGODB_URI || 'mongodb://127.0.0.1:27017',
 );
-exports.db = exports.mongoClient.db(process.env.MONGODB_DB || 'vila_waitlist');
+exports.db = exports.mongoClient.db(
+  process.env.MONGODB_DB || 'korral_waitlist',
+);
 async function connectDatabase() {
   await exports.mongoClient.connect();
   await exports.db

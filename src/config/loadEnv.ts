@@ -10,15 +10,25 @@ const primary = resolve(serverRoot, filename);
 
 if (existsSync(primary)) {
   const result = loadDotenv({ path: primary });
-  if (result.error) console.error(`[VILA config] Failed to read ${filename}:`, result.error.message);
+  if (result.error)
+    console.error(
+      `[korral config] Failed to read ${filename}:`,
+      result.error.message,
+    );
 } else {
-  console.info(`[VILA config] No ${filename} found. Using deployment environment variables.`);
+  console.info(
+    `[korral config] No ${filename} found. Using deployment environment variables.`,
+  );
 }
 
 const required = ['RESEND_API_KEY', 'EMAIL_FROM'];
-const missing = required.filter(key => !process.env[key]?.trim());
+const missing = required.filter((key) => !process.env[key]?.trim());
 if (missing.length > 0) {
-  console.warn('[VILA email] Resend is NOT READY. Missing: ' + missing.join(', '));
+  console.warn(
+    '[korral email] Resend is NOT READY. Missing: ' + missing.join(', '),
+  );
 } else {
-  console.info('[VILA email] Resend configuration detected. EMAIL_FROM must use a domain verified in Resend.');
+  console.info(
+    '[korral email] Resend configuration detected. EMAIL_FROM must use a domain verified in Resend.',
+  );
 }
