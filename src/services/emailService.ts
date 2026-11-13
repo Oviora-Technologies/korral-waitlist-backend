@@ -1,9 +1,7 @@
-import nodemailer from 'nodemailer';
-import { resolve } from 'node:path';
+import { Resend } from 'resend';
 import { renderEmail } from './emailTemplate';
 
 type Message = { to: string; name: string; subject: string; heading: string; message: string; actionText?: string; actionUrl?: string };
-const logoPath = resolve(__dirname, '../../assets/vila-logo.png');
 
 function appUrl(path: string) {
   const base = process.env.PUBLIC_APP_URL || process.env.CLIENT_ORIGIN || 'http://localhost:3000';
@@ -12,54 +10,37 @@ function appUrl(path: string) {
 
 /** Email is sent only AFTER registration succeeds. Failures must never invalidate or repeat a saved registration. */
 async function send(message: Message): Promise<boolean> {
-  const host = process.env.EMAIL_HOST;
-  const port = Number(process.env.EMAIL_PORT || 587);
-  const user = process.env.EMAIL_USER;
-  const password = process.env.EMAIL_PASS;
-  if (!host || !user || !password) {
-    const missing = [!host && 'EMAIL_HOST', !user && 'EMAIL_USER', !password && 'EMAIL_PASS'].filter(Boolean).join(', ');
-    console.error(`[VILA email] Not sent to ${message.to}: missing ${missing} in server/.env`);
+  const apiKey = process.env.RESEND_API_KEY?.trim();
+  const from = process.env.EMAIL_FROM?.trim();
+  if (!apiKey || !from) {
+    const missing = [!apiKey && 'RESEND_API_KEY', !from && 'EMAIL_FROM'].filter(Boolean).join(', ');
+    console.error(`[VILA email] Not sent: missing ${missing}.`);
     return false;
   }
   try {
-    const transport = nodemailer.createTransport({
-      host,
-      port,
-      secure: port === 465,
-      auth: { user, pass: password },
-      connectionTimeout: 10000,
-      greetingTimeout: 10000,
-      socketTimeout: 10000,
-    });
-    const result = await transport.sendMail({
-      from: process.env.EMAIL_FROM || `"VILA" <${user}>`,
-      to: message.to,
+    const resend = new Resend(apiKey);
+    const { data, error } = await resend.emails.send({
+      from,
+      to: [message.to],
       subject: message.subject,
-      text: `Hi ${message.name},\n\n${message.message}\n\n${message.actionText ? message.actionText + ': ' + message.actionUrl + '\n\n' : ''}Thanks,\nThe VILA Team`,
+      text: `Hi ${message.name},\n\n${message.message}\n\n${message.actionText && message.actionUrl ? message.actionText + ': ' + message.actionUrl + '\n\n' : ''}Thanks,\nThe VILA Team`,
       html: renderEmail(message),
-      attachments: [{ filename: 'vila-logo.png', path: logoPath, cid: 'vila-logo', contentDisposition: 'inline' }],
-    });
-    const accepted = (result.accepted || []).map(address => String(address).toLowerCase());
-    const ok = accepted.includes(message.to.trim().toLowerCase());
-    if (ok) {
-      console.info(`[VILA email] SMTP accepted ${message.to}. Message ID: ${result.messageId}`);
-    } else {
-      console.error(`[VILA email] SMTP did not accept ${message.to}. Rejected recipients: ${(result.rejected || []).length}`);
+    }, { signal: AbortSignal.timeout(10000) });
+    if (error) {
+      console.error('[VILA email] Resend rejected the email:', { name: error.name, statusCode: error.statusCode });
+      if (error.statusCode === 401 || error.statusCode === 403) {
+        console.error('[VILA email] Check RESEND_API_KEY permissions and verify the EMAIL_FROM domain in Resend.');
+      }
+      return false;
     }
-    return ok;
+    if (!data?.id) {
+      console.error('[VILA email] Resend returned no email ID.');
+      return false;
+    }
+    console.info('[VILA email] Resend accepted the email:', { id: data.id });
+    return true;
   } catch (error) {
-    const failure = error as Error & { code?: string; responseCode?: number; command?: string };
-    console.error('[VILA email] SMTP send failed:', {
-      code: failure.code || 'UNKNOWN',
-      responseCode: failure.responseCode,
-      command: failure.command,
-      message: failure.message,
-    });
-    if (failure.code === 'EAUTH') {
-      console.error(host === 'smtp.gmail.com'
-        ? '[VILA email] Gmail rejected the credentials. Enable 2-Step Verification and create an App Password at https://myaccount.google.com/apppasswords for EMAIL_USER. Save it as EMAIL_PASS in server/.env, then restart the server. Do not use your regular Google password.'
-        : '[VILA email] The SMTP provider rejected EMAIL_USER or EMAIL_PASS. Update the credentials and restart the server.');
-    }
+    console.error('[VILA email] Resend send failed:', { name: error instanceof Error ? error.name : 'UnknownError' });
     return false;
   }
 }

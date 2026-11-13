@@ -15,13 +15,10 @@ if (existsSync(primary)) {
   console.info(`[VILA config] No ${filename} found. Using deployment environment variables.`);
 }
 
-const required = ['EMAIL_HOST', 'EMAIL_PORT', 'EMAIL_USER', 'EMAIL_PASS'];
+const required = ['RESEND_API_KEY', 'EMAIL_FROM'];
 const missing = required.filter(key => !process.env[key]?.trim());
 if (missing.length > 0) {
-  console.warn('[VILA email] SMTP is NOT READY. Missing: ' + missing.join(', '));
-} else if (/^(myemail|youraddress|replace-with|myemailpassword)/i.test(process.env.EMAIL_USER || '') ||
-  /^(myemailpassword|replace-with|your-smtp)/i.test(process.env.EMAIL_PASS || '')) {
-  console.warn(`[VILA email] SMTP credentials look like example placeholders. Set actual SMTP credentials in ${filename}.`);
+  console.warn('[VILA email] Resend is NOT READY. Missing: ' + missing.join(', '));
 } else {
-  console.info('[VILA email] SMTP configuration detected for ' + process.env.EMAIL_HOST + ':' + process.env.EMAIL_PORT + '.');
+  console.info('[VILA email] Resend configuration detected. EMAIL_FROM must use a domain verified in Resend.');
 }
