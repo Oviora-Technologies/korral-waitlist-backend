@@ -15,7 +15,12 @@ app.use(requestLogging);
 app.use(helmet());
 // Accept the deployed waitlist frontend even if CLIENT_ORIGIN is still set to a local URL.
 // Keep the configured origin for other trusted deployments and local development.
-const allowedOrigins = new Set([\n  env.clientOrigin.replace(/\/$/, ''),\n  'https://www.korral-app.com',\n  'https://korral-app.com',\n  'https://villa-waitlist-frontend.onrender.com',\n]);
+const allowedOrigins = new Set([
+  env.clientOrigin.replace(/\/$/, ''),
+  'https://www.korral-app.com',
+  'https://korral-app.com',
+  'https://villa-waitlist-frontend.onrender.com',
+]);
 
 // Respond to browser preflight requests before route handlers and rate limits.
 app.use(cors({
